@@ -47,7 +47,7 @@ class UnifiedCompleter(Completer):
         self.prompt_dict = {prompt.name: prompt for prompt in prompts}
 
     def update_resources(self, resources: List):
-        self.resources = resources
+        self.resources = resources if resources is not None else []
 
     def get_completions(self, document, complete_event):
         text = document.text
@@ -57,14 +57,15 @@ class UnifiedCompleter(Completer):
             last_at_pos = text_before_cursor.rfind("@")
             prefix = text_before_cursor[last_at_pos + 1 :]
 
-            for resource_id in self.resources:
-                if resource_id.lower().startswith(prefix.lower()):
-                    yield Completion(
-                        resource_id,
-                        start_position=-len(prefix),
-                        display=resource_id,
-                        display_meta="Resource",
-                    )
+            if self.resources:
+                for resource_id in self.resources:
+                    if resource_id.lower().startswith(prefix.lower()):
+                        yield Completion(
+                            resource_id,
+                            start_position=-len(prefix),
+                            display=resource_id,
+                            display_meta="Resource",
+                        )
             return
 
         if text.startswith("/"):
@@ -86,7 +87,7 @@ class UnifiedCompleter(Completer):
             if len(parts) == 1 and text.endswith(" "):
                 cmd = parts[0]
 
-                if cmd in self.prompt_dict:
+                if cmd in self.prompt_dict and self.resources:
                     for id in self.resources:
                         yield Completion(
                             id,
@@ -98,15 +99,14 @@ class UnifiedCompleter(Completer):
             if len(parts) >= 2:
                 doc_prefix = parts[-1]
 
-                for resource in self.resources:
-                    if "id" in resource and resource["id"].lower().startswith(
-                        doc_prefix.lower()
-                    ):
-                        yield Completion(
-                            resource["id"],
-                            start_position=-len(doc_prefix),
-                            display=resource["id"],
-                        )
+                if self.resources:
+                    for resource_id in self.resources:
+                        if resource_id.lower().startswith(doc_prefix.lower()):
+                            yield Completion(
+                                resource_id,
+                                start_position=-len(doc_prefix),
+                                display=resource_id,
+                            )
                 return
 
 
